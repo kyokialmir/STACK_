@@ -1,23 +1,107 @@
-﻿using System;
-
+using System;
+using System.Collections.Generic;
 class Program
 {
     static void Main(string[] args)
     {
-        MovieDatabase movieDatabase = new MovieDatabase();
-        movieDatabase.Add_movie("Побег из Шоушенка", "Драма", 2020);
-        movieDatabase.Add_movie("Крестный отец", "Криминал", 2024);
-        movieDatabase.Add_movie("Темный рыцарь", "Боевик", 2019);
+        MovieDatabase movieDatabase = new MovieDatabase(100);
 
-        movieDatabase.Print_all_movies();
+        movieDatabase.AddMovie("Побег из Шоушенка", "Драма", 1994);
+        movieDatabase.AddMovie("Крестный отец", "Криминал", 1972);
+        movieDatabase.AddMovie("Темный рыцарь", "Боевик", 2008);
 
-        movieDatabase.Remove_movie("Крестный отец");
+        movieDatabase.PrintAllMovies();
 
-        movieDatabase.Print_all_movies();
+        movieDatabase.RemoveMovie("Крестный отец");
 
-        movieDatabase.Search_movie_by_title("Темный рыцарь");
+        movieDatabase.PrintAllMovies();
+
+        movieDatabase.SearchMovieByTitle("Темный рыцарь");
+
+        movieDatabase.ListMoviesByGenre("Драма");
+
+        movieDatabase.ListMoviesByReleaseYear(2008);
     }
 }
+class StackWithArray
+{
+    private int[] _items;
+    private int _size;
+    private readonly int _initialSize = 4;
+    private int _top;
+
+    public StackWithArray()
+    {
+        _size = _initialSize;
+        _items = new int[_size];
+        _top = -1;
+    }
+
+    public StackWithArray(int size)
+    {
+        _size = size;
+        _items = new int[_size];
+        _top = -1;
+    }
+
+    public void Push(int value)
+    {
+        IncreaseCapacity();
+        _top++;
+        _items[_top] = value;
+    }
+
+    public int Pop()
+    {
+        if (IsEmpty())
+        {
+            throw new Exception("Стек пуст");
+        }
+
+        int temp = Peek();
+        _top--;
+        DecreaseCapacity();
+        return temp;
+    }
+
+    public int Peek()
+    {
+        if (IsEmpty())
+        {
+            throw new Exception("Стек пуст");
+        }
+
+        return _items[_top];
+    }
+
+    public bool IsEmpty()
+    {
+        return _top == -1;
+    }
+
+    private void IncreaseCapacity()
+    {
+        if (_top + 1 >= _size)
+        {
+            int[] temp = new int[_size * 2];
+            Array.Copy(_items, temp, _size);
+            _items = temp;
+            _size *= 2;
+        }
+    }
+
+    private void DecreaseCapacity()
+    {
+        if (_size > _initialSize && _top + 1 <= _size / 4)
+        {
+            int[] temp = new int[_size / 2];
+            Array.Copy(_items, temp, _top + 1);
+            _items = temp;
+            _size /= 2;
+        }
+    }
+}
+
 class Movie
 {
     public string Title { get; set; }
@@ -25,128 +109,77 @@ class Movie
     public int ReleaseYear { get; set; }
 }
 
-class MyStack<T>
-{
-    private T[] items;
-    private int top;
-
-    public MyStack(int size)
-    {
-        items = new T[size];
-        top = -1;
-    }
-
-    public void Push(T item)
-    {
-        if (top == items.Length - 1)
-        {
-            Console.WriteLine("Стек переполнен");
-            return;
-        }
-
-        items[++top] = item;
-    }
-
-    public T Pop()
-    {
-        if (top == -1)
-        {
-            Console.WriteLine("Стек пуст");
-            return default(T);
-        }
-
-        T item = items[top];
-        items[top--] = default(T);
-        return item;
-    }
-
-    public T Peek()
-    {
-        if (top == -1)
-        {
-            Console.WriteLine("Стек пуст");
-            return default(T);
-        }
-
-        return items[top];
-    }
-
-    public bool IsEmpty()
-    {
-        return top == -1;
-    }
-}
-
 class MovieDatabase
 {
-    private MyStack<Movie> movies = new MyStack<Movie>(100);
+    private Stack<Movie> moviesStack;
 
-    public void Add_movie(string title, string genre, int releaseYear)
+    public MovieDatabase(int initialCapacity)
     {
-        movies.Push(new Movie { Title = title, Genre = genre, ReleaseYear = releaseYear });
-        Console.WriteLine("Фильм добавлен.");
+        moviesStack = new Stack<Movie>(initialCapacity);
     }
 
-    public void Remove_movie(string title)
+    public void AddMovie(string title, string genre, int releaseYear)
     {
-        MyStack<Movie> tempStack = new MyStack<Movie>(100);
+        Movie newMovie = new Movie { Title = title, Genre = genre, ReleaseYear = releaseYear };
+        moviesStack.Push(newMovie);
+        Console.WriteLine($"Фильм \"{title}\" успешно добавлен.");
+    }
 
-        while (!movies.IsEmpty())
+    public void RemoveMovie(string title)
+    {
+        Movie removedMovie = null;
+        Stack<Movie> tempStack = new Stack<Movie>();
+
+        while (moviesStack.Count > 0)
         {
-            Movie movie = movies.Pop();
-            if (movie.Title != title)
+            Movie currentMovie = moviesStack.Pop();
+            if (currentMovie.Title != title)
             {
-                tempStack.Push(movie);
+                tempStack.Push(currentMovie);
+            }
+            else
+            {
+                removedMovie = currentMovie;
+                break;
             }
         }
 
-        while (!tempStack.IsEmpty())
+        while (tempStack.Count > 0)
         {
-            movies.Push(tempStack.Pop());
+            moviesStack.Push(tempStack.Pop());
         }
 
-        Console.WriteLine("Фильм удален.");
+        if (removedMovie != null)
+        {
+            Console.WriteLine($"Фильм \"{removedMovie.Title}\" успешно удален.");
+        }
+        else
+        {
+            Console.WriteLine("Фильм не найден.");
+        }
     }
 
-    public void Print_all_movies()
+    public void PrintAllMovies()
     {
         Console.WriteLine("Все фильмы:");
-
-        MyStack<Movie> tempStack = new MyStack<Movie>(100);
-
-        while (!movies.IsEmpty())
+        foreach (var movie in moviesStack)
         {
-            Movie movie = movies.Pop();
             Console.WriteLine($"Название: {movie.Title}, Жанр: {movie.Genre}, Год выпуска: {movie.ReleaseYear}");
-            tempStack.Push(movie);
-        }
-
-        while (!tempStack.IsEmpty())
-        {
-            movies.Push(tempStack.Pop());
         }
     }
 
-    public void Search_movie_by_title(string title)
+    public void SearchMovieByTitle(string title)
     {
         bool found = false;
 
-        MyStack<Movie> tempStack = new MyStack<Movie>(100);
-
-        while (!movies.IsEmpty())
+        foreach (var movie in moviesStack)
         {
-            Movie movie = movies.Pop();
             if (movie.Title == title)
             {
-                Console.WriteLine($"Фильм : Название: {movie.Title}, Жанр: {movie.Genre}, Год выпуска: {movie.ReleaseYear}");
+                Console.WriteLine($"Фильм найден: Название: {movie.Title}, Жанр: {movie.Genre}, Год выпуска: {movie.ReleaseYear}");
                 found = true;
+                break;
             }
-            tempStack.Push(movie);
-        }
-
-        while (!tempStack.IsEmpty())
-        {
-            movies.Push(tempStack.Pop());
         }
 
         if (!found)
@@ -154,48 +187,44 @@ class MovieDatabase
             Console.WriteLine("Фильм не найден.");
         }
     }
-    public void List_movies_by_genre(string genre)
+
+    public void ListMoviesByGenre(string genre)
     {
+        bool found = false;
+
         Console.WriteLine($"Фильмы жанра \"{genre}\":");
-
-        MyStack<Movie> tempStack = new MyStack<Movie>(100);
-
-        while (!movies.IsEmpty())
+        foreach (var movie in moviesStack)
         {
-            Movie movie = movies.Pop();
             if (movie.Genre == genre)
             {
                 Console.WriteLine($"Название: {movie.Title}, Год выпуска: {movie.ReleaseYear}");
+                found = true;
             }
-            tempStack.Push(movie);
         }
 
-        while (!tempStack.IsEmpty())
+        if (!found)
         {
-            movies.Push(tempStack.Pop());
+            Console.WriteLine($"Фильмы жанра \"{genre}\" не найдены.");
         }
     }
 
-    public void List_movies_by_release_year(int releaseYear)
+    public void ListMoviesByReleaseYear(int releaseYear)
     {
+        bool found = false;
+
         Console.WriteLine($"Фильмы выпущены в {releaseYear} году:");
-
-        MyStack<Movie> tempStack = new MyStack<Movie>(100);
-
-        while (!movies.IsEmpty())
+        foreach (var movie in moviesStack)
         {
-            Movie movie = movies.Pop();
             if (movie.ReleaseYear == releaseYear)
             {
                 Console.WriteLine($"Название: {movie.Title}, Жанр: {movie.Genre}");
+                found = true;
             }
-            tempStack.Push(movie);
         }
 
-        while (!tempStack.IsEmpty())
+        if (!found)
         {
-            movies.Push(tempStack.Pop());
+            Console.WriteLine($"Фильмы выпущены в {releaseYear} году не найдены.");
         }
     }
 }
-
